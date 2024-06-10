@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract SecurePropertyToken is ERC721URIStorage, Ownable {
     struct Property {
@@ -38,20 +39,21 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
     });
 
     bool public propertyTokenized = false;
-    uint256 public tokenPrice; // price in wei
+    uint256 public tokenPrice; // price in USDC (smallest unit 6 decimals)
     uint256 public totalTokens;
     uint256 public issuedTokens = 0;
     string public tokenURI = "ipfs://QmUoPYACuFAwAXYy318fma6c89ogyJxCjzDUVBc5g3KR8X";
     mapping(uint256 => bool) public soldTokens;
 
-    // address public constant mosaicAccount = 0x05B9E9514Fce6b5d903c7e763429b1D497DE6b3b; //MosaicAI MetaMask Wallet
-    address public constant mosaicAccount = 0x617F2E2fD72FD9D5503197092aC168c91465E7f2; // MosaicTest
+    address public constant mosaicAccount = 0x05B9E9514Fce6b5d903c7e763429b1D497DE6b3b; //MosaicAI MetaMask Wallet
+    // address public constant mosaicAccount = 0x617F2E2fD72FD9D5503197092aC168c91465E7f2; // MosaicTest
+    IERC20 public usdcToken;
 
     // Hardcoded whitelist and blacklist addresses
     address[] public whitelistedAddresses = [
         0x3762bA161a7ADba9Ee84A8cAFfFE57aa2E13347F, // Investor1
         0x5cA6AAE74E45BD7271aA9eeDE684A047c77cAb53, // Investor2
-        0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2, // Investor Test1
+        0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2, // Investor Test1ß
         0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db // Investor Test2
     ];
     address[] public blacklistedAddresses = [
@@ -74,13 +76,15 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
 
     mapping(uint256 => SaleListing) public saleListings;
 
-    constructor() ERC721("RealWorldAssetToken", "RWAT") Ownable(msg.sender) {}
+    constructor(address _usdcToken) ERC721("RealWorldAssetToken", "RWAT") Ownable(msg.sender) {
+        usdcToken = IERC20(_usdcToken);
+    }
 
     function issueTokens(uint256 _totalTokens, uint256 _tokenPrice) external onlyOwner {
         require(!propertyTokenized, "Tokens have already been issued");
 
         totalTokens = _totalTokens;
-        tokenPrice = _tokenPrice;
+        tokenPrice = _tokenPrice * 10**6;
         propertyTokenized = true;
 
         for (uint256 i = 1; i <= _totalTokens; i++) {
@@ -112,7 +116,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         );
     }
 
-    function buyTokens(uint256 _numTokens) external payable {
+    function buyTokens(uint256 _numTokens) external {
         require(propertyTokenized, "Tokens have not been issued");
         require(_numTokens > 0 && _numTokens <= 8, "Number of tokens must be between 1 and 8");
         require(_numTokens <= availableTokens(), "Not enough tokens available");
@@ -120,13 +124,15 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         require(!isBlacklisted(msg.sender), "Address blacklisted");
 
         uint256 totalCost = _numTokens * tokenPrice;
-        require(msg.value >= totalCost, "Insufficient ETH sent");
+        require(usdcToken.balanceOf(msg.sender) >= totalCost, "Insufficient USDC balance");
+        require(usdcToken.allowance(msg.sender, address(this)) >= totalCost, "USDC allowance too low");
 
-        uint256 refund = msg.value - totalCost;
+        // Transfer USDC from buyer to the contract
+        usdcToken.transferFrom(msg.sender, address(this), totalCost);
 
         uint256 tokensBought = 0;
         for (uint256 i = 1; i <= totalTokens && tokensBought < _numTokens; i++) {
-            if (ownerOf(i) == address(0) || soldTokens[i]) {
+            if (soldTokens[i]) {
                 continue;
             }
 
@@ -157,22 +163,16 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
             emit TokenPurchased(msg.sender, i, tokenPrice);
         }
 
-        // Refund any excess payment
-        if (refund > 0) {
-            payable(msg.sender).transfer(refund);
-            emit Refund(msg.sender, refund);
-        }
-
         // Calculate commission and owner payment
         uint256 commission = (totalCost * 2) / 100; // 2% commission
         uint256 ownerPayment = totalCost - commission; // 98% to the owner
 
         // Transfer the commission to mosaicAccount
-        payable(mosaicAccount).transfer(commission);
+        usdcToken.transfer(mosaicAccount, commission);
         emit CommissionPaid(mosaicAccount, commission);
 
-        // Transfer the ETH to the contract owner
-        payable(owner()).transfer(ownerPayment);
+        // Transfer the USDC to the contract owner
+        usdcToken.transfer(owner(), ownerPayment);
         emit PaymentReceived(owner(), ownerPayment);
     }
 
@@ -224,7 +224,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         return false;
     }
 
-    function distributeRentIncome() external payable onlyOwner {
+    function distributeRentIncome() external onlyOwner {
         require(propertyTokenized, "Tokens have not been issued");
 
         // Calculate rent income per token based on 0.5% of property valuation
@@ -236,13 +236,24 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         Investor[] memory investorList = getInvestors();
 
         for (uint256 i = 0; i < investorList.length; i++) {
+            uint256 tokenCount = investorList[i].tokenCount;
+            uint256 rentIncome = rentIncomePerToken * tokenCount;
+            totalDistributed += rentIncome;
+        }
+
+        // Ensure the contract is approved to spend the total USDC
+        require(usdcToken.allowance(msg.sender, address(this)) >= totalDistributed, "USDC allowance too low");
+
+        // Transfer the total rent income from the owner to the contract
+        usdcToken.transferFrom(msg.sender, address(this), totalDistributed);
+
+        for (uint256 i = 0; i < investorList.length; i++) {
             address tokenOwner = investorList[i].investor;
             uint256 tokenCount = investorList[i].tokenCount;
             uint256 rentIncome = rentIncomePerToken * tokenCount;
 
-            // Transfer the calculated rent income to the token owner
-            payable(tokenOwner).transfer(rentIncome);
-            totalDistributed += rentIncome;
+            // Transfer the calculated rent income to the token owner in USDC
+            usdcToken.transfer(tokenOwner, rentIncome);
 
             // Store the rent payment details
             rentPayments.push(RentPaymentDetail({
@@ -272,32 +283,25 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         });
     }
 
-
-    function buyListedToken(uint256 _tokenId) external payable {
+    function buyListedToken(uint256 _tokenId) external {
         SaleListing memory listing = saleListings[_tokenId];
         
         require(listing.price > 0, "This token is not for sale");
-        require(msg.value >= listing.price, "Insufficient ETH sent");
+        require(usdcToken.balanceOf(msg.sender) >= listing.price, "Insufficient USDC balance");
+        require(usdcToken.allowance(msg.sender, address(this)) >= listing.price, "USDC allowance too low");
         require(listing.seller != address(0), "Invalid seller address");
 
         address seller = listing.seller;
         uint256 price = listing.price;
+
+        // Transfer USDC from buyer to the seller
+        usdcToken.transferFrom(msg.sender, seller, price);
 
         // Transfer the token from seller to buyer
         _transfer(seller, msg.sender, _tokenId);
 
         // Remove the listing
         delete saleListings[_tokenId];
-
-        // Transfer ETH to the seller
-        payable(seller).transfer(price);
-
-        // Refund any excess payment
-        uint256 refund = msg.value - price;
-        if (refund > 0) {
-            payable(msg.sender).transfer(refund);
-            emit Refund(msg.sender, refund);
-        }
 
         emit TokenPurchased(msg.sender, _tokenId, price);
     }
