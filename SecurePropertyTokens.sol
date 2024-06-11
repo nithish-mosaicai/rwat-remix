@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 contract SecurePropertyToken is ERC721URIStorage, Ownable {
     struct Property {
@@ -24,12 +25,6 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         uint256 tokenCount;
     }
 
-    struct SaleListing {
-        uint256 tokenId;
-        address seller;
-        uint256 price;
-    }
-
     // Data from ATTOM API
     Property public property = Property({
         location: "629 HARLEM AVE # 1, FOREST PARK, IL 60130",
@@ -42,7 +37,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
     uint256 public tokenPrice; // price in USDC (smallest unit 6 decimals)
     uint256 public totalTokens;
     uint256 public issuedTokens = 0;
-    string public tokenURI = "ipfs://QmUoPYACuFAwAXYy318fma6c89ogyJxCjzDUVBc5g3KR8X";
+    // string public tokenURI = "ipfs://QmUoPYACuFAwAXYy318fma6c89ogyJxCjzDUVBc5g3KR8X";
     mapping(uint256 => bool) public soldTokens;
 
     address public constant mosaicAccount = 0x05B9E9514Fce6b5d903c7e763429b1D497DE6b3b; //MosaicAI MetaMask Wallet
@@ -74,8 +69,6 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
     mapping(address => uint256) public tokenOwnership;
     Investor[] public investors;
 
-    mapping(uint256 => SaleListing) public saleListings;
-
     constructor(address _usdcToken) ERC721("RealWorldAssetToken", "RWAT") Ownable(msg.sender) {
         usdcToken = IERC20(_usdcToken);
     }
@@ -87,13 +80,52 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         tokenPrice = _tokenPrice * 10**6;
         propertyTokenized = true;
 
+        string memory json = string(
+            abi.encodePacked(
+                '{"name": "629 Harlem LLM",',
+                '"description": "RWAT for 629 Harlem LLM",',
+                '"image": "ipfs://QmYXMF36M4tn4LmuTWjayebobTPsyErwbg94qzLAXqdMGy",',
+                '"attributes": [',
+                '{"trait_type": "Location","value": "', property.location, '"},',
+                '{"trait_type": "Lot Size","value": ', uint2str(property.lotSize), '},',
+                '{"trait_type": "Total Price","value": ', uint2str(property.totalPrice), '},',
+                '{"trait_type": "Tax Assessed Value","value": ', uint2str(property.taxAssessedValue), '}',
+                ']}'
+            )
+        );
+
+        string memory encodedJson = Base64.encode(bytes(json));
+        string memory finalTokenUri = string(abi.encodePacked("data:application/json;base64,", encodedJson));
+
         for (uint256 i = 1; i <= _totalTokens; i++) {
             _mint(msg.sender, i);
-            _setTokenURI(i, tokenURI);
+            _setTokenURI(i, finalTokenUri);
         }
         issuedTokens = _totalTokens;
 
         emit TokensIssued(_totalTokens, _tokenPrice);
+    }
+
+    function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint256 k = len;
+        while (_i != 0) {
+            k = k - 1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 
     function updateTokenPrice(uint256 _tokenPrice) external onlyOwner {
@@ -267,43 +299,6 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
 
     function getInvestors() public view returns (Investor[] memory) {
         return investors;
-    }
-
-    function listTokenForSale(uint256 _tokenId, uint256 _price) external {
-        require(ownerOf(_tokenId) == msg.sender, "You are not the owner of this token");
-        require(_price > 0, "Price must be greater than zero");
-
-        // Check if the seller is an investor
-        require(isInvestor(msg.sender), "Only investors can list tokens for sale");
-
-        saleListings[_tokenId] = SaleListing({
-            tokenId: _tokenId,
-            seller: msg.sender,
-            price: _price
-        });
-    }
-
-    function buyListedToken(uint256 _tokenId) external {
-        SaleListing memory listing = saleListings[_tokenId];
-        
-        require(listing.price > 0, "This token is not for sale");
-        require(usdcToken.balanceOf(msg.sender) >= listing.price, "Insufficient USDC balance");
-        require(usdcToken.allowance(msg.sender, address(this)) >= listing.price, "USDC allowance too low");
-        require(listing.seller != address(0), "Invalid seller address");
-
-        address seller = listing.seller;
-        uint256 price = listing.price;
-
-        // Transfer USDC from buyer to the seller
-        usdcToken.transferFrom(msg.sender, seller, price);
-
-        // Transfer the token from seller to buyer
-        _transfer(seller, msg.sender, _tokenId);
-
-        // Remove the listing
-        delete saleListings[_tokenId];
-
-        emit TokenPurchased(msg.sender, _tokenId, price);
     }
 
     function isInvestor(address _address) public view returns (bool) {
