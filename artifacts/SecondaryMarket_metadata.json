@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.26+commit.8a97fa7a"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -305,7 +305,7 @@
 		"compilationTarget": {
 			"RWATSecondaryMarket.sol": "SecondaryMarket"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -405,6 +405,14 @@
 				"dweb:/ipfs/Qmbwp8VDerjS5SV1quwHH1oMXxPQ93fzfLVqJ2RCqbowGE"
 			]
 		},
+		"@openzeppelin/contracts/utils/Base64.sol": {
+			"keccak256": "0x09000342b85b1a06fa1f5b71bdeef7c449cd25799aac14fa9053d8abd18219aa",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a7cdab282a9165b685fa86da3bd331c8e319e5a5c64e16599134e738934a77d4",
+				"dweb:/ipfs/QmSLcE5FmDqVQbFDB6MzUzuFi4UhJVUQ1A2rT4aJGhpERT"
+			]
+		},
 		"@openzeppelin/contracts/utils/Context.sol": {
 			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
 			"license": "MIT",
@@ -462,11 +470,11 @@
 			]
 		},
 		"SecurePropertyTokens.sol": {
-			"keccak256": "0x59f238795d3cbd8f22c3755bb11ad35bea6526ef9bbeeedab6eb1624c889a0eb",
+			"keccak256": "0xc98a7d7f21ad8047a750368cbcb2de3340ab6b4730e27dc2dd03a25305405876",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://1dc4db448a077475d4420870f1facf8f8223c6d49a63439437deb6ff214bdf34",
-				"dweb:/ipfs/QmQcQsEpT9JZb1PJPKxx2FYP65BVcyMis7vtPU1tmjftwh"
+				"bzz-raw://4340fa6e4488da686e87d5c05b6f46fcc5e1a3d886d18a90aee4cc39c46b45ce",
+				"dweb:/ipfs/QmNcnifRCbZkH8wA19XPjkBmGAS8Dh2WkDf5gi7ouFZSV8"
 			]
 		}
 	},

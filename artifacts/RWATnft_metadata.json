@@ -349,14 +349,19 @@
 						"type": "address"
 					},
 					{
-						"internalType": "uint256",
-						"name": "_tokenId",
-						"type": "uint256"
-					},
-					{
 						"internalType": "string",
 						"name": "_uri",
 						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_totalTokens",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_tokenPrice",
+						"type": "uint256"
 					}
 				],
 				"name": "mint",
@@ -518,6 +523,19 @@
 				"type": "function"
 			},
 			{
+				"inputs": [],
+				"name": "tokenPrice",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "uint256",
@@ -531,6 +549,19 @@
 						"internalType": "string",
 						"name": "",
 						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "totalTokens",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -874,11 +905,11 @@
 			]
 		},
 		"mintRWAT.sol": {
-			"keccak256": "0xbb4f661001701100cf0e363b45150e26799a1b71e4851a625b716b0c25ec6643",
+			"keccak256": "0x89e91b2feb674c1bacd16849057b96b24c3a4f592ab5f732e405d5fba2b0e225",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://970d3fd8771d8f223a5db6230d42bfa5724bd04a0f96ef68fc646cb2f2c4ad70",
-				"dweb:/ipfs/QmZ25zfBmXBMtkfww6p97oGKvh8FXpqbjGb6h7timxrGvR"
+				"bzz-raw://a6fb51a399f6bdb631b28057cf7c002bbfc4bf09d3e6dfc20e677cfe6682e520",
+				"dweb:/ipfs/QmReyXkNjj3FA6pBhA9oMDUw23ampZB4HasuT6c22BhUNV"
 			]
 		}
 	},
