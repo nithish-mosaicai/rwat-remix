@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import {RequestRWATdata} from "RequestRWATdata.sol";
 
 contract SecurePropertyToken is ERC721URIStorage, Ownable {
     struct Property {
@@ -25,13 +26,19 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         uint256 tokenCount;
     }
 
-    // Data from ATTOM API
-    Property public property = Property({
-        location: "629 HARLEM AVE # 1, FOREST PARK, IL 60130",
-        lotSize: 3564,
-        totalPrice: 290000,
-        taxAssessedValue: 24062
-    });
+    Property public property;
+    RequestRWATdata public requestRWATdata;
+
+    // External function to initialize property
+    function fetchPropertyDetails(address requestRWATdataAddress) external {
+        requestRWATdata = RequestRWATdata(requestRWATdataAddress);
+        property = Property({
+            location: requestRWATdata.location(),
+            lotSize: requestRWATdata.lotSize(),
+            totalPrice: requestRWATdata.totalPrice(),
+            taxAssessedValue: requestRWATdata.taxAssessedValue()
+        });
+    }
 
     bool public propertyTokenized = false;
     uint256 public tokenPrice; // price in USDC (smallest unit 6 decimals)
