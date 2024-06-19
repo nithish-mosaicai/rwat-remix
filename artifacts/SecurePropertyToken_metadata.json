@@ -6,13 +6,7 @@
 	"output": {
 		"abi": [
 			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_usdcToken",
-						"type": "address"
-					}
-				],
+				"inputs": [],
 				"stateMutability": "nonpayable",
 				"type": "constructor"
 			},
@@ -1428,11 +1422,11 @@
 			]
 		},
 		"SecurePropertyTokens.sol": {
-			"keccak256": "0xc98a7d7f21ad8047a750368cbcb2de3340ab6b4730e27dc2dd03a25305405876",
+			"keccak256": "0x6ab3d4cf2b99a78f0f271b820732262e84e6d59e26687c4c45b9675fcd1f4e83",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://4340fa6e4488da686e87d5c05b6f46fcc5e1a3d886d18a90aee4cc39c46b45ce",
-				"dweb:/ipfs/QmNcnifRCbZkH8wA19XPjkBmGAS8Dh2WkDf5gi7ouFZSV8"
+				"bzz-raw://4c24f01164e88ce47de90d7d1ccab2e7d6e1b378be3eb54a1d91ef787481f698",
+				"dweb:/ipfs/QmZ4tZWPXrPaa1Ss3r1wdb5dWLGaNNZcbMjVrcboTj1tws"
 			]
 		}
 	},

@@ -42,7 +42,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
 
     address public constant mosaicAccount = 0x05B9E9514Fce6b5d903c7e763429b1D497DE6b3b; //MosaicAI MetaMask Wallet
     // address public constant mosaicAccount = 0x617F2E2fD72FD9D5503197092aC168c91465E7f2; // MosaicTest
-    IERC20 public usdcToken;
+    IERC20 public usdcToken = IERC20(0xF31B086459C2cdaC006Feedd9080223964a9cDdB);
 
     // Hardcoded whitelist and blacklist addresses
     address[] public whitelistedAddresses = [
@@ -69,8 +69,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
     mapping(address => uint256) public tokenOwnership;
     Investor[] public investors;
 
-    constructor(address _usdcToken) ERC721("RealWorldAssetToken", "RWAT") Ownable(msg.sender) {
-        usdcToken = IERC20(_usdcToken);
+    constructor() ERC721("RealWorldAssetToken", "RWAT") Ownable(msg.sender) {
     }
 
     function issueTokens(uint256 _totalTokens, uint256 _tokenPrice) external onlyOwner {
@@ -80,6 +79,18 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         tokenPrice = _tokenPrice * 10**6;
         propertyTokenized = true;
 
+        string memory finalTokenUri = createTokenUri();
+
+        for (uint256 i = 1; i <= _totalTokens; i++) {
+            _mint(msg.sender, i);
+            _setTokenURI(i, finalTokenUri);
+        }
+        issuedTokens = _totalTokens;
+
+        emit TokensIssued(_totalTokens, _tokenPrice);
+    }
+
+    function createTokenUri() internal view returns (string memory) {
         string memory json = string(
             abi.encodePacked(
                 '{"name": "629 Harlem LLM",',
@@ -95,16 +106,9 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         );
 
         string memory encodedJson = Base64.encode(bytes(json));
-        string memory finalTokenUri = string(abi.encodePacked("data:application/json;base64,", encodedJson));
-
-        for (uint256 i = 1; i <= _totalTokens; i++) {
-            _mint(msg.sender, i);
-            _setTokenURI(i, finalTokenUri);
-        }
-        issuedTokens = _totalTokens;
-
-        emit TokensIssued(_totalTokens, _tokenPrice);
+        return string(abi.encodePacked("data:application/json;base64,", encodedJson));
     }
+
 
     function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
         if (_i == 0) {

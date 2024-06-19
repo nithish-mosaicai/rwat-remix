@@ -4,21 +4,9 @@ pragma solidity 0.8.20;
 import {FunctionsClient} from "@chainlink/contracts@1.1.1/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts@1.1.1/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {FunctionsRequest} from "@chainlink/contracts@1.1.1/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
-
-/**
- * Request testnet LINK and ETH here: https://faucets.chain.link/
- * Find information on LINK Token Contracts and get the latest ETH and LINK faucets here: https://docs.chain.link/resources/link-token-contracts/
- */
-
-/**
- * @title GettingStartedFunctionsConsumer
- * @notice This is an example contract to show how to make HTTP requests using Chainlink
- * @dev This contract uses hardcoded values and should not be used in production.
- */
 contract RequestRWATdata is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
 
-    // State variables to store the last request ID, response, and error
     bytes32 public s_lastRequestId;
     bytes public s_lastResponse;
     bytes public s_lastError;
@@ -43,20 +31,19 @@ contract RequestRWATdata is FunctionsClient, ConfirmedOwner {
 
     // JavaScript source code
     string source = 
-            "const id = args[0]"
-            "const apiResponse = await Functions.makeHttpRequest({"
-            "url: 'https://geniebackbone.azurewebsites.net/api/properties/demo' });"
-            "const { data } = apiResponse.data;"
-            "console.log('API response data:', JSON.stringify(data, null, 2));"
-            "const location = data.location;"
-            "const lotSize = Number(data.lotSize);"
-            "const totalPrice = Number(data.totalPrice);"
-            "const taxAssessedValue = Number(data.taxAssessedValue);"
-            "const response = {location,lotSize,totalPrice,taxAssessedValue};"
-            "const jsonResponse = JSON.stringify(response, null, 2);"
-            "return Buffer.from(jsonResponse);";
+        "const { ethers } = await import('npm:ethers@6.10.0');"
+        "const abiCoder = ethers.AbiCoder.defaultAbiCoder();"
+        "const apiResponse = await Functions.makeHttpRequest({"
+        "    url: 'https://geniebackbone.azurewebsites.net/api/properties/demo'"
+        "});"
+        "const { data } = apiResponse.data;"
+        "const location = data.location;"
+        "const lotSize = Number(data.lotSize);"
+        "const totalPrice = Number(data.totalPrice);"
+        "const taxAssessedValue = Number(data.taxAssessedValue);"
+        "const encoded = abiCoder.encode([`string`, `uint256`, `uint256`, `uint256`], [location, lotSize, totalPrice, taxAssessedValue]);"
+        "return ethers.getBytes(encoded);";
 
-    // Callback gas limit
     uint32 gasLimit = 300000;
 
     // donID - Hardcoded for Sepolia
@@ -74,20 +61,12 @@ contract RequestRWATdata is FunctionsClient, ConfirmedOwner {
      * @notice Initializes the contract with the Chainlink router address and sets the contract owner
      */
     constructor() FunctionsClient(router) ConfirmedOwner(msg.sender) {}
-
-    /**
-     * @notice Sends an HTTP request for property information
-     * @param subscriptionId The ID for the Chainlink subscription
-     * @param args The arguments to pass to the HTTP request
-     * @return requestId The ID of the request
-     */
+     
     function sendRequest(
-        uint64 subscriptionId,
-        string[] calldata args
+        uint64 subscriptionId
     ) external onlyOwner returns (bytes32 requestId) {
         FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(source); // Initialize the request with JS code
-        if (args.length > 0) req.setArgs(args); // Set the arguments for the request
+        req.initializeRequestForInlineJavaScript(source);
 
         // Send the request and store the request ID
         s_lastRequestId = _sendRequest(
@@ -100,26 +79,16 @@ contract RequestRWATdata is FunctionsClient, ConfirmedOwner {
         return s_lastRequestId;
     }
 
-    /**
-     * @notice Callback function for fulfilling a request
-     * @param requestId The ID of the request to fulfill
-     * @param response The HTTP response data
-     * @param err Any errors from the Functions request
-     */
     function fulfillRequest(
         bytes32 requestId,
         bytes memory response,
         bytes memory err
     ) internal override {
         if (s_lastRequestId != requestId) {
-            revert UnexpectedRequestID(requestId); // Check if request IDs match
+            revert UnexpectedRequestID(requestId);
         }
-        // Update the contract's state variables with the response and any errors
-        s_lastResponse = response;
         (location, lotSize, totalPrice, taxAssessedValue) = abi.decode(response, (string, uint256, uint256, uint256));
         s_lastError = err;
-
-        // Emit an event to log the response
         emit Response(requestId, location, lotSize, totalPrice, taxAssessedValue, s_lastResponse, s_lastError);
     }
 }
