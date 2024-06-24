@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.20+commit.a1b79de6"
+		"version": "0.8.26+commit.8a97fa7a"
 	},
 	"language": "Solidity",
 	"output": {
@@ -356,7 +356,7 @@
 		"compilationTarget": {
 			"RequestRWATdata.sol": "RequestRWATdata"
 		},
-		"evmVersion": "shanghai",
+		"evmVersion": "cancun",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -449,11 +449,11 @@
 			]
 		},
 		"RequestRWATdata.sol": {
-			"keccak256": "0xfb1280c915d608430540297f13bef4679a8ab5e6799e7df2df0c39bd137f8dc8",
+			"keccak256": "0xc350c34260965e8dcab7a09e6a223a79e25b45dc172f0b54a3964406e409e163",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a67945b456124c5863eff90763bf9fdcafe245a5c0cf6ef55276b52a2c9f039d",
-				"dweb:/ipfs/QmezV6FXBiuD24UHHVnk1HkTFpTFvTPVohxrtPmcCtHAiu"
+				"bzz-raw://445fad1896c5ed345929bb4fcb431787cee378f130f8720cfecc7e390f816a1a",
+				"dweb:/ipfs/QmXuzUEeyhLH77o5Bit91kX6vrVpqHpXGvnMutsVaydffM"
 			]
 		}
 	},

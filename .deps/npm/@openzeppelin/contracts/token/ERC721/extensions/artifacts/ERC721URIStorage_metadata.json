@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.26+commit.8a97fa7a"
+		"version": "0.8.22+commit.4fc1097e"
 	},
 	"language": "Solidity",
 	"output": {
@@ -613,7 +613,7 @@
 		"compilationTarget": {
 			".deps/npm/@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol": "ERC721URIStorage"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"

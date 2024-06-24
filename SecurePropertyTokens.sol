@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {RequestRWATdata} from "RequestRWATdata.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract SecurePropertyToken is ERC721URIStorage, Ownable {
     struct Property {
@@ -41,7 +43,9 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
     }
 
     bool public propertyTokenized = false;
-    uint256 public tokenPrice; // price in USDC (smallest unit 6 decimals)
+    int public usdcValue;
+    uint256 public tokenPriceUSD; // price in USD
+    uint256 public tokenPriceUSDC; // price in USDC multiplied with 10^6 => 100 USDC -> 100000000 = 100.000000
     uint256 public totalTokens;
     uint256 public issuedTokens = 0;
     // string public tokenURI = "ipfs://QmUoPYACuFAwAXYy318fma6c89ogyJxCjzDUVBc5g3KR8X";
@@ -63,27 +67,48 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         0x78731D3Ca6b7E34aC0F824c42a7cC18A495cabaB // Investor Test3
     ];
 
-    event TokensIssued(uint256 totalTokens, uint256 tokenPrice);
+    event TokensIssued(uint256 totalTokens, uint256 tokenPriceUSD);
     event TokenPurchased(address indexed buyer, uint256 tokenId, uint256 price);
     event CommissionPaid(address indexed recipient, uint256 amount);
     event PaymentReceived(address indexed recipient, uint256 amount);
     event Refund(address indexed recipient, uint256 amount);
     event RentPayment(address indexed recipient, uint256 amount); // Event for rent payment to token owner
 
-    uint256 public propertyValuation = 2800; //valuation = (w1*29000 + w2*24062) / (w1+w2) 
+    uint256 public propertyValuation = 2800; //valuation = (w1*29000 + w2*24062) / (w1+w2)
 
     RentPaymentDetail[] public rentPayments;
     mapping(address => uint256) public tokenOwnership;
     Investor[] public investors;
 
+    AggregatorV3Interface internal priceFeed;
+
+    /**
+     * Network: Sepolia Testnet
+     * Aggregator: USDC/USD
+     * Address: 0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E
+     */
+    
     constructor() ERC721("RealWorldAssetToken", "RWAT") Ownable(msg.sender) {
+        priceFeed = AggregatorV3Interface(0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E);
+    }
+    
+    function getLatestPrice() public{
+        (
+            , 
+            int price,
+            ,
+            ,
+            
+        ) = priceFeed.latestRoundData();
+        usdcValue = price;
     }
 
-    function issueTokens(uint256 _totalTokens, uint256 _tokenPrice) external onlyOwner {
+    function issueTokens(uint256 _totalTokens, uint256 _tokenPriceUSD) external onlyOwner {
         require(!propertyTokenized, "Tokens have already been issued");
 
         totalTokens = _totalTokens;
-        tokenPrice = _tokenPrice * 10**6;
+        tokenPriceUSD = _tokenPriceUSD;
+        tokenPriceUSDC = ((tokenPriceUSD * uint256(usdcValue)) / 10**8) * 10**6;
         propertyTokenized = true;
 
         string memory finalTokenUri = createTokenUri();
@@ -94,7 +119,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         }
         issuedTokens = _totalTokens;
 
-        emit TokensIssued(_totalTokens, _tokenPrice);
+        emit TokensIssued(_totalTokens, _tokenPriceUSD);
     }
 
     function createTokenUri() internal view returns (string memory) {
@@ -105,9 +130,9 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
                 '"image": "ipfs://QmYXMF36M4tn4LmuTWjayebobTPsyErwbg94qzLAXqdMGy",',
                 '"attributes": [',
                 '{"trait_type": "Location","value": "', property.location, '"},',
-                '{"trait_type": "Lot Size","value": ', uint2str(property.lotSize), '},',
-                '{"trait_type": "Total Price","value": ', uint2str(property.totalPrice), '},',
-                '{"trait_type": "Tax Assessed Value","value": ', uint2str(property.taxAssessedValue), '}',
+                '{"trait_type": "Lot Size","value": ', Strings.toString(property.lotSize), '},',
+                '{"trait_type": "Total Price","value": ', Strings.toString(property.totalPrice), '},',
+                '{"trait_type": "Tax Assessed Value","value": ', Strings.toString(property.taxAssessedValue), '}',
                 ']}'
             )
         );
@@ -116,33 +141,11 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         return string(abi.encodePacked("data:application/json;base64,", encodedJson));
     }
 
-
-    function uint2str(uint256 _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint256 j = _i;
-        uint256 len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint256 k = len;
-        while (_i != 0) {
-            k = k - 1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
-    }
-
-    function updateTokenPrice(uint256 _tokenPrice) external onlyOwner {
+    function updateTokenPrice(uint256 _tokenPriceUSD) external onlyOwner {
         require(propertyTokenized, "Tokens have not been issued");
 
-        tokenPrice = _tokenPrice;
+        tokenPriceUSD = _tokenPriceUSD;
+        tokenPriceUSDC = ((tokenPriceUSD * uint256(usdcValue)) / 10**8) * 10**6;
     }
 
     function getPropertyDetails() external view returns (
@@ -166,7 +169,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         require(isWhitelisted(msg.sender), "Address not whitelisted");
         require(!isBlacklisted(msg.sender), "Address blacklisted");
 
-        uint256 totalCost = _numTokens * tokenPrice;
+        uint256 totalCost = _numTokens * tokenPriceUSDC;
         require(usdcToken.balanceOf(msg.sender) >= totalCost, "Insufficient USDC balance");
         require(usdcToken.allowance(msg.sender, address(this)) >= totalCost, "USDC allowance too low");
 
@@ -203,7 +206,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
 
             tokensBought++;
 
-            emit TokenPurchased(msg.sender, i, tokenPrice);
+            emit TokenPurchased(msg.sender, i, tokenPriceUSD);
         }
 
         // Calculate commission and owner payment
