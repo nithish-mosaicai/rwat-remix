@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.26+commit.8a97fa7a"
+		"version": "0.8.20+commit.a1b79de6"
 	},
 	"language": "Solidity",
 	"output": {
@@ -600,6 +600,11 @@
 						"internalType": "bool",
 						"name": "",
 						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -1027,6 +1032,19 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_tokenPriceUSD",
+						"type": "uint256"
+					}
+				],
+				"name": "updateTokenPrice",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "usdcToken",
 				"outputs": [
@@ -1219,7 +1237,7 @@
 		"compilationTarget": {
 			"BuyTokens.sol": "SecurePropertyToken"
 		},
-		"evmVersion": "cancun",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -1464,11 +1482,11 @@
 			]
 		},
 		"BuyTokens.sol": {
-			"keccak256": "0xb7b14814b12e3c952370d6211a12feafb676259de909a573fd37900c71076da4",
+			"keccak256": "0xfd5ac947e6c15bd79aa3669d53a631948cfe29653e7e9ee43853650697c024ce",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://3b3b5b2ec2802795e18482293b99496b307dc028a6489b980f6d766863cb6f21",
-				"dweb:/ipfs/QmYugzPZVTaPWZxCizQBS3dTDVfgiBAK9567VZexfg1CBJ"
+				"bzz-raw://7c7cb3e5cf628142fbb49273a8d31f351f16ef9f1e560da2347c1cbe803c558e",
+				"dweb:/ipfs/QmXE2HXDoQMtLYGb7KqDJwL9H86K4Y45DJQH6v5Tg5fegg"
 			]
 		},
 		"IssueRWAT.sol": {

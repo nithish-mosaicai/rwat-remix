@@ -44,7 +44,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
     address[] public whitelistedAddresses = [
         0x3762bA161a7ADba9Ee84A8cAFfFE57aa2E13347F, // Investor1
         0x5cA6AAE74E45BD7271aA9eeDE684A047c77cAb53, // Investor2
-        0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2, // Investor Test1ß
+        0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2, // Investor Test1
         0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db // Investor Test2
     ];
     address[] public blacklistedAddresses = [
@@ -86,20 +86,18 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         uint256 tokensBought = 0;
         require(propertyTokenized, "Tokens have not been issued");
         require(_numTokens > 0 && _numTokens <= 8, "Number of tokens must be between 1 and 8");
-        bool investorExists = false;
 
-        for (uint256 j = 0; j < investors.length; j++) {
-            if (investors[j].investor == msg.sender) {
-                require(_numTokens <= 8 - investors[j].tokenCount, "Exceeds maximum allowed tokens per investor");
-                investorExists = true;
-                tokensBought = investors[j].tokenCount;
-                break;
-            }
-        }
 
         require(_numTokens <= availableTokens(), "Not enough tokens available");
         require(isWhitelisted(msg.sender), "Address not whitelisted");
         require(!isBlacklisted(msg.sender), "Address blacklisted");
+
+        (bool investorExists, uint256 investorIndex) = isInvestor(msg.sender);
+
+        if(investorExists){
+            require(_numTokens <= 8 - investors[investorIndex].tokenCount, "Exceeds maximum allowed tokens per investor");
+            tokensBought = investors[investorIndex].tokenCount;
+        }
 
         uint256 totalCost = _numTokens * tokenPriceUSDC;
         require(usdcToken.balanceOf(msg.sender) >= totalCost, "Insufficient USDC balance");
@@ -115,22 +113,17 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
 
             issueRWAT.transferFrom(owner(), msg.sender, i);
             soldTokens[i] = true;
-            tokenOwnership[msg.sender] += 1; // Update token ownership
+            tokenOwnership[msg.sender] += 1;
 
-            // Check if the investor already exists in the array
-            for (uint256 j = 0; j < investors.length; j++) {
-                if (investors[j].investor == msg.sender) {
-                    investors[j].tokenCount += 1;
-                    break;
-                }
-            }
-
-            // If the investor does not exist, add them to the array
             if (!investorExists) {
                 investors.push(Investor({
                     investor: msg.sender,
                     tokenCount: 1
                 }));
+            }
+            
+            else{
+                investors[investorIndex].tokenCount += 1;
             }
 
             tokensBought++;
@@ -167,7 +160,7 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         uint256[] memory _tokenIds = new uint256[](totalTokens);
         uint256 count = 0;
         for (uint256 i = 1; i <= totalTokens; i++) {
-            if (ownerOf(i) != address(0)) {
+            if (issueRWAT.ownerOf(i) != address(0)) {
                 _owners[count] = ownerOf(i);
                 _tokenIds[count] = i;
                 count++;
@@ -244,12 +237,23 @@ contract SecurePropertyToken is ERC721URIStorage, Ownable {
         return investors;
     }
 
-    function isInvestor(address _address) public view returns (bool) {
+    function isInvestor(address _address) public view returns (bool, uint256) {
+        bool found = false;
+        uint256 index = 0;
+
         for (uint256 i = 0; i < investors.length; i++) {
             if (investors[i].investor == _address) {
-                return true;
+                found = true;
+                index = i;
+                break;
             }
         }
-        return false;
+        return (found, index);
     }
+
+    function updateTokenPrice() public {
+        tokenPriceUSD = issueRWAT.tokenPriceUSD();
+        tokenPriceUSDC = issueRWAT.tokenPriceUSDC();
+    }
+    
 }
